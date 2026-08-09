@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_FILE = path.join(__dirname, 'data_store.json');
+// Support Vercel serverless environment (/tmp directory)
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true' || !!process.env.VERCEL_ENV;
+const DB_FILE = isVercel ? path.join('/tmp', 'data_store.json') : path.join(__dirname, 'data_store.json');
+
+// In-memory fallback cache
+let memoryData = null;
 
 // Initial schema structure
 const defaultData = {
@@ -16,23 +21,30 @@ const defaultData = {
 // Ensure data directory exists
 function loadData() {
   try {
+    if (memoryData) return memoryData;
     if (!fs.existsSync(DB_FILE)) {
-      fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2));
-      return defaultData;
+      try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2));
+      } catch (e) {}
+      memoryData = JSON.parse(JSON.stringify(defaultData));
+      return memoryData;
     }
     const raw = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(raw);
+    memoryData = JSON.parse(raw);
+    return memoryData;
   } catch (err) {
     console.error('Error reading DB file, creating fresh:', err);
-    return defaultData;
+    if (!memoryData) memoryData = JSON.parse(JSON.stringify(defaultData));
+    return memoryData;
   }
 }
 
 function saveData(data) {
+  memoryData = data;
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
   } catch (err) {
-    console.error('Error saving DB file:', err);
+    console.error('Error saving DB file (using in-memory cache):', err.message);
   }
 }
 

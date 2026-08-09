@@ -20,10 +20,13 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Ensure uploads directory
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+// Ensure uploads directory (use /tmp on Vercel)
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true' || !!process.env.VERCEL_ENV;
+const uploadsDir = isVercel ? path.join('/tmp', 'uploads') : path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  } catch (e) {}
 }
 app.use('/uploads', express.static(uploadsDir));
 
@@ -566,7 +569,11 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`⚡ MeetIQ AI Server running on http://localhost:${PORT}`);
-});
+// Start Server if run directly
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`⚡ MeetIQ AI Server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

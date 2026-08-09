@@ -6,7 +6,9 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server/server.js",
-    "dev": "node server/server.js"
+    "dev": "node server/server.js",
+    "build": "echo 'Build complete'",
+    "vercel-build": "echo 'Vercel build complete'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
