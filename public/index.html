@@ -1,0 +1,1458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MeetIQ — AI Meeting Intelligence & Voice Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+:root{
+  --bg:#07090F;--bg2:#0D1117;--surface:rgba(255,255,255,0.04);--surface2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.09);--border2:rgba(99,102,241,0.4);--indigo:#6366F1;--indigo2:#818CF8;
+  --violet:#A78BFA;--cyan:#22D3EE;--green:#10B981;--red:#F87171;--amber:#FBBF24;
+  --text:#F1F5F9;--text2:#94A3B8;--text3:#64748B;
+  --glow:0 0 40px rgba(99,102,241,0.25);--glow-sm:0 0 16px rgba(99,102,241,0.20);
+  --radius:16px;--radius-sm:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg2);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* Background Visual FX */
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(99,102,241,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,0.03) 1px,transparent 1px);background-size:64px 64px;}
+.bg-orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;}
+.bg-orb-1{width:600px;height:600px;background:rgba(99,102,241,0.12);top:-200px;left:-200px;}
+.bg-orb-2{width:500px;height:500px;background:rgba(167,139,250,0.08);bottom:-200px;right:-150px;}
+
+.app-shell{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+
+/* Topbar Header */
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:64px;background:rgba(7,9,15,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+.topbar-logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--text);cursor:pointer;}
+.topbar-logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 16px rgba(99,102,241,0.4);}
+.topbar-logo span{color:var(--indigo2);}
+
+.nav-links{display:flex;align-items:center;gap:8px;}
+.nav-btn{padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text2);background:transparent;border:none;cursor:pointer;transition:all 0.2s;}
+.nav-btn:hover{color:var(--text);background:var(--surface2);}
+.nav-btn.active{color:#fff;background:rgba(99,102,241,0.18);border:1px solid var(--border2);}
+
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.badge-live{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);font-size:12px;font-weight:600;color:var(--green);}
+.badge-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2s infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.8);}}
+
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 0 12px rgba(99,102,241,0.3);}
+
+/* Main Page Layout */
+.page{flex:1;padding:36px 32px;max-width:1200px;margin:0 auto;width:100%;}
+.page-center{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 64px);}
+.glass{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);backdrop-filter:blur(16px);}
+.glass-hover{transition:border-color 0.2s,box-shadow 0.2s,transform 0.2s;cursor:pointer;}
+.glass-hover:hover{border-color:var(--border2);box-shadow:var(--glow-sm);transform:translateY(-2px);}
+
+/* Buttons & Inputs */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:var(--radius-sm);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;white-space:nowrap;}
+.btn-primary{background:linear-gradient(135deg,var(--indigo),var(--violet));color:#fff;box-shadow:0 4px 20px rgba(99,102,241,0.35);}
+.btn-primary:hover{box-shadow:0 6px 28px rgba(99,102,241,0.50);transform:translateY(-1px);}
+.btn-primary:disabled{opacity:0.45;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:rgba(255,255,255,0.1);border-color:var(--border2);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-full{width:100%;}
+
+.input-group{display:flex;flex-direction:column;gap:8px;}
+.input-label{font-size:13px;font-weight:500;color:var(--text2);}
+.input{width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:inherit;font-size:14px;transition:border-color 0.2s,box-shadow 0.2s;outline:none;}
+.input::placeholder{color:var(--text3);}
+.input:focus{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(99,102,241,0.15);}
+textarea.input{resize:vertical;min-height:110px;}
+
+/* Auth Login */
+.login-wrap{width:100%;max-width:440px;}
+.login-header{text-align:center;margin-bottom:28px;}
+.login-icon{width:60px;height:60px;border-radius:18px;margin:0 auto 16px;background:linear-gradient(135deg,var(--indigo),var(--violet));display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 8px 32px rgba(99,102,241,0.45);}
+.login-title{font-size:30px;font-weight:800;letter-spacing:-0.5px;}
+.login-title span{color:var(--indigo2);}
+.login-sub{color:var(--text2);font-size:14px;margin-top:6px;}
+.login-card{padding:32px;}
+.login-form{display:flex;flex-direction:column;gap:18px;}
+
+/* Dashboard Hero & Stats */
+.dash-hero{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;gap:20px;flex-wrap:wrap;}
+.dash-greeting{font-size:12px;color:var(--indigo2);font-weight:700;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;}
+.dash-title{font-size:32px;font-weight:800;letter-spacing:-0.8px;line-height:1.15;}
+.dash-title span{background:linear-gradient(135deg,var(--indigo2),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.dash-sub{color:var(--text2);font-size:15px;margin-top:8px;}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+.stat-card{padding:20px 24px;}
+.stat-label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.stat-value{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.stat-value.indigo{color:var(--indigo2);}.stat-value.violet{color:var(--violet);}.stat-value.cyan{color:var(--cyan);}.stat-value.green{color:var(--green);}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.section-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px;}
+
+/* Meetings Grid */
+.meetings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;}
+.meeting-card{padding:22px;display:flex;flex-direction:column;justify-content:space-between;}
+.meeting-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.meeting-card-icon{width:42px;height:42px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(167,139,250,0.18));border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;}
+.meeting-card-title{font-size:16px;font-weight:700;line-height:1.3;color:var(--text);margin-bottom:4px;}
+.meeting-card-date{font-size:12px;color:var(--text3);}
+.meeting-card-summary{font-size:13px;color:var(--text2);line-height:1.5;margin-top:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.meeting-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+.status-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;}
+.status-pill.ready{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);color:var(--green);}
+.status-pill.processing{background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);color:var(--indigo2);}
+
+/* Kanban Board */
+.kanban-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.kanban-col{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+.kanban-col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.kanban-col-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.kanban-col-badge{font-size:11px;font-weight:700;background:var(--surface2);padding:2px 8px;border-radius:12px;color:var(--text2);}
+.kanban-cards{display:flex;flex-direction:column;gap:12px;min-height:200px;}
+.kanban-card{padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);transition:all 0.2s;}
+.kanban-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--glow-sm);}
+.kanban-card-title{font-size:14px;font-weight:600;margin-bottom:8px;line-height:1.4;}
+.kanban-card-meta{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text3);margin-top:10px;}
+.owner-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(99,102,241,0.15);color:var(--indigo2);}
+.prio-pill{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;text-transform:uppercase;}
+.prio-high{background:rgba(248,113,113,0.15);color:var(--red);}
+.prio-medium{background:rgba(251,191,36,0.15);color:var(--amber);}
+.prio-low{background:rgba(16,185,129,0.15);color:var(--green);}
+
+/* AI Q&A Drawer / Chat */
+.qa-wrap{max-width:850px;margin:0 auto;}
+.qa-box{padding:28px;}
+.qa-input-row{display:flex;gap:12px;margin-bottom:20px;}
+.qa-suggestions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px;}
+.chip{padding:6px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:12px;color:var(--text2);cursor:pointer;transition:all 0.2s;}
+.chip:hover{border-color:var(--indigo2);color:#fff;background:rgba(99,102,241,0.15);}
+.qa-response{padding:20px;border-radius:var(--radius-sm);background:rgba(13,17,23,0.8);border:1px solid var(--border2);margin-top:16px;line-height:1.6;}
+.qa-response pre{white-space:pre-wrap;font-family:inherit;}
+
+/* Voice Notes Studio */
+.vn-recorder{text-align:center;padding:40px 24px;border:2px dashed var(--border2);border-radius:var(--radius);background:rgba(99,102,241,0.03);margin-bottom:28px;}
+.vn-mic-btn{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--violet));border:none;color:#fff;font-size:32px;cursor:pointer;box-shadow:0 0 30px rgba(99,102,241,0.5);transition:all 0.25s;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.vn-mic-btn.recording{animation:pulse-rec 1.5s infinite;background:linear-gradient(135deg,var(--red),#EF4444);box-shadow:0 0 30px rgba(248,113,113,0.6);}
+@keyframes pulse-rec{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+
+.wave-bars{display:flex;align-items:center;justify-content:center;gap:4px;height:36px;margin:16px 0;}
+.wave-bar{width:4px;border-radius:2px;background:linear-gradient(to top,var(--indigo),var(--violet));animation:wave 1.2s ease-in-out infinite;}
+@keyframes wave{0%,100%{height:8px;opacity:0.4;}50%{height:32px;opacity:1;}}
+
+/* Detail Modal Drawer */
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:24px;}
+.modal-content{width:100%;max-width:900px;max-height:90vh;overflow-y:auto;padding:32px;position:relative;}
+.modal-close{position:absolute;top:20px;right:20px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;}
+.tab-bar{display:flex;gap:12px;border-bottom:1px solid var(--border);margin-bottom:24px;padding-bottom:8px;}
+.tab-item{padding:8px 16px;font-size:13px;font-weight:600;color:var(--text2);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;}
+.tab-item.active{color:var(--indigo2);border-bottom-color:var(--indigo2);}
+
+.action-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:8px;gap:12px;}
+
+@keyframes slide-up{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.animate-in{animation:slide-up 0.3s ease both;}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const API_BASE = '/api';
+
+// Helper API caller with Auth Token
+async function apiCall(endpoint, method = 'GET', body = null, isFormData = false) {
+  const token = localStorage.getItem('meetiq_token');
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (!isFormData && body) headers['Content-Type'] = 'application/json';
+
+  const options = {
+    method,
+    headers,
+    body: body ? (isFormData ? body : JSON.stringify(body)) : null
+  };
+
+  const res = await fetch(`${API_BASE}${endpoint}`, options);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'API Request Failed');
+  return data;
+}
+
+// -------------------------------------------------------------
+// MAIN APP COMPONENT
+// -------------------------------------------------------------
+function App() {
+  const [user, setUser] = useState(null);
+  const [activeNav, setActiveNav] = useState('dashboard');
+  const [meetings, setMeetings] = useState([]);
+  const [actionItems, setActionItems] = useState([]);
+  const [voiceNotes, setVoiceNotes] = useState([]);
+  const [videoNotes, setVideoNotes] = useState([]);
+  const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Check login token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('meetiq_token');
+    if (token) {
+      apiCall('/auth/me')
+        .then(res => {
+          setUser(res.user);
+          loadAppData();
+        })
+        .catch(() => {
+          localStorage.removeItem('meetiq_token');
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  function loadAppData() {
+    setLoading(true);
+    Promise.all([
+      apiCall('/meetings'),
+      apiCall('/action-items'),
+      apiCall('/voice-notes'),
+      apiCall('/video-notes')
+    ]).then(([mList, aList, vList, vidList]) => {
+      setMeetings(mList);
+      setActionItems(aList);
+      setVoiceNotes(vList);
+      setVideoNotes(vidList);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }
+
+  function handleClearAllData() {
+    if (confirm("Are you sure you want to delete ALL recorded videos, voice notes, meetings, and action items?")) {
+      apiCall('/admin/clear-all', 'POST').then(() => {
+        alert("All recordings, videos, voice notes, and meeting data have been deleted.");
+        loadAppData();
+      }).catch(err => alert(err.message));
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('meetiq_token');
+    setUser(null);
+  }
+
+  if (!user) {
+    return <LoginView onLoggedIn={(userData) => { setUser(userData); loadAppData(); }} />;
+  }
+
+  return (
+    <div className="app-shell">
+      {/* TOPBAR */}
+      <div className="topbar">
+        <div className="topbar-logo" onClick={() => setActiveNav('dashboard')}>
+          <div className="topbar-logo-icon">⚡</div>
+          Meet<span>IQ</span>
+        </div>
+
+        <div className="nav-links">
+          <button className={`nav-btn ${activeNav === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveNav('dashboard')}>
+            🎙️ Meetings
+          </button>
+          <button className={`nav-btn ${activeNav === 'kanban' ? 'active' : ''}`} onClick={() => setActiveNav('kanban')}>
+            📋 Kanban Board
+          </button>
+          <button className={`nav-btn ${activeNav === 'voicenotes' ? 'active' : ''}`} onClick={() => setActiveNav('voicenotes')}>
+            🔊 Voice Notes
+          </button>
+          <button className={`nav-btn ${activeNav === 'videostudio' ? 'active' : ''}`} onClick={() => setActiveNav('videostudio')}>
+            🎥 Video Studio
+          </button>
+          <button className={`nav-btn ${activeNav === 'qa' ? 'active' : ''}`} onClick={() => setActiveNav('qa')}>
+            🤖 Ask AI
+          </button>
+        </div>
+
+        <div className="topbar-right">
+          <div className="badge-live"><div className="badge-live-dot"></div>AI Active</div>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowUploadModal(true)}>+ Upload / Record</button>
+          <button className="btn btn-secondary btn-sm" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }} onClick={handleClearAllData} title="Delete all recordings, videos, and meeting data">
+            🧹 Clear Data
+          </button>
+          <div className="avatar" title={`Signed in as ${user.email} (Click to Logout)`} onClick={handleLogout}>
+            {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+          </div>
+        </div>
+      </div>
+
+      {/* PAGE BODY */}
+      <div className="page">
+        {activeNav === 'dashboard' && (
+          <DashboardView
+            meetings={meetings}
+            actionItems={actionItems}
+            voiceNotes={voiceNotes}
+            onSelectMeeting={(m) => setSelectedMeeting(m)}
+            onNewUpload={() => setShowUploadModal(true)}
+          />
+        )}
+
+        {activeNav === 'kanban' && (
+          <KanbanView
+            actionItems={actionItems}
+            onUpdateItem={(id, updates) => {
+              apiCall(`/action-items/${id}`, 'PUT', updates).then(() => loadAppData());
+            }}
+            onDeleteItem={(id) => {
+              apiCall(`/action-items/${id}`, 'DELETE').then(() => loadAppData());
+            }}
+            onAddItem={(newItem) => {
+              apiCall('/action-items', 'POST', newItem).then(() => loadAppData());
+            }}
+          />
+        )}
+
+        {activeNav === 'voicenotes' && (
+          <VoiceNotesView
+            voiceNotes={voiceNotes}
+            onNoteCreated={() => loadAppData()}
+          />
+        )}
+
+        {activeNav === 'videostudio' && (
+          <VideoStudioView
+            videoNotes={videoNotes}
+            onNoteCreated={() => loadAppData()}
+          />
+        )}
+
+        {activeNav === 'qa' && (
+          <AIQAView meetings={meetings} actionItems={actionItems} />
+        )}
+      </div>
+
+      {/* MEETING DETAIL MODAL */}
+      {selectedMeeting && (
+        <MeetingDetailModal
+          meetingId={selectedMeeting.id}
+          onClose={() => { setSelectedMeeting(null); loadAppData(); }}
+        />
+      )}
+
+      {/* UPLOAD / NEW MEETING MODAL */}
+      {showUploadModal && (
+        <UploadModal
+          onClose={() => setShowUploadModal(false)}
+          onUploaded={() => { setShowUploadModal(false); loadAppData(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// LOGIN / REGISTER VIEW
+// -------------------------------------------------------------
+function LoginView({ onLoggedIn }) {
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('alex@company.com');
+  const [password, setPassword] = useState('password123');
+  const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const endpoint = isRegister ? '/auth/register' : '/auth/login';
+      const body = isRegister ? { email, password, name } : { email, password };
+      const res = await apiCall(endpoint, 'POST', body);
+      localStorage.setItem('meetiq_token', res.token);
+      onLoggedIn(res.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page page-center animate-in">
+      <div className="login-wrap">
+        <div className="login-header">
+          <div className="login-icon">⚡</div>
+          <div className="login-title">Welcome to <span>MeetIQ</span></div>
+          <div className="login-sub">AI-powered meeting intelligence & voice notes</div>
+        </div>
+
+        <div className="glass login-card">
+          {error && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 14, textCenter: 'center' }}>⚠️ {error}</div>}
+          <form className="login-form" onSubmit={handleSubmit}>
+            {isRegister && (
+              <div className="input-group">
+                <label className="input-label">Full Name</label>
+                <input className="input" type="text" placeholder="Alex Rivera" value={name} onChange={e => setName(e.target.value)} required />
+              </div>
+            )}
+            <div className="input-group">
+              <label className="input-label">Work Email</label>
+              <input className="input" type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Password</label>
+              <input className="input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+            </div>
+
+            <button className="btn btn-primary btn-full" disabled={loading}>
+              {loading ? 'Authenticating...' : (isRegister ? 'Create Free Account →' : 'Sign In →')}
+            </button>
+          </form>
+
+          <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: 'var(--text2)' }}>
+            {isRegister ? 'Already have an account? ' : "Don't have an account? "}
+            <span style={{ color: 'var(--indigo2)', cursor: 'pointer', fontWeight: 600 }} onClick={() => setIsRegister(!isRegister)}>
+              {isRegister ? 'Sign In' : 'Register'}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// DASHBOARD VIEW
+// -------------------------------------------------------------
+function DashboardView({ meetings, actionItems, voiceNotes, onSelectMeeting, onNewUpload }) {
+  const pendingActions = actionItems.filter(a => a.status !== 'done').length;
+
+  return (
+    <div className="animate-in">
+      <div className="dash-hero">
+        <div>
+          <div className="dash-greeting">⚡ MeetIQ AI Workspace</div>
+          <div className="dash-title">Turn Conversations into<br /><span>Actionable Intelligence.</span></div>
+          <div className="dash-sub">Instant summaries, auto-assigned action items, sentiment analytics, and voice memos.</div>
+        </div>
+        <button className="btn btn-primary" onClick={onNewUpload}>+ New Recording / Transcript</button>
+      </div>
+
+      {/* METRICS ROW */}
+      <div className="stats-row">
+        <div className="glass stat-card">
+          <div className="stat-label">Total Meetings</div>
+          <div className="stat-value indigo">{meetings.length}</div>
+        </div>
+        <div className="glass stat-card">
+          <div className="stat-label">Open Action Items</div>
+          <div className="stat-value violet">{pendingActions}</div>
+        </div>
+        <div className="glass stat-card">
+          <div className="stat-label">Voice Notes Captured</div>
+          <div className="stat-value cyan">{voiceNotes.length}</div>
+        </div>
+        <div className="glass stat-card">
+          <div className="stat-label">Avg Team Sentiment</div>
+          <div className="stat-value green">92%</div>
+        </div>
+      </div>
+
+      {/* RECENT MEETINGS */}
+      <div className="section-header">
+        <div className="section-title">🎙️ Recent Meetings ({meetings.length})</div>
+      </div>
+
+      {meetings.length === 0 ? (
+        <div className="glass" style={{ padding: 48, textAlign: 'center', color: 'var(--text2)' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🎙️</div>
+          <h3>No meeting recordings yet</h3>
+          <p style={{ marginTop: 6, fontSize: 14, color: 'var(--text3)' }}>Upload an audio file, paste a transcript, or record a voice note to get started.</p>
+          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={onNewUpload}>+ Add First Meeting</button>
+        </div>
+      ) : (
+        <div className="meetings-grid">
+          {meetings.map(m => (
+            <div key={m.id} className="glass glass-hover meeting-card" onClick={() => onSelectMeeting(m)}>
+              <div className="meeting-card-top">
+                <div className="meeting-card-icon">🎙️</div>
+                <span className="status-pill ready"><span className="badge-live-dot"></span>Ready</span>
+              </div>
+              <div>
+                <div className="meeting-card-title">{m.title}</div>
+                <div className="meeting-card-date">📅 {new Date(m.date || m.createdAt).toLocaleDateString()} • ⏱️ {m.duration}</div>
+                <div className="meeting-card-summary">{m.summary}</div>
+              </div>
+              <div className="meeting-card-footer">
+                <span style={{ fontSize: 12, color: 'var(--indigo2)', fontWeight: 600 }}>View Intelligence Summary →</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// KANBAN VIEW
+// -------------------------------------------------------------
+function KanbanView({ actionItems, onUpdateItem, onDeleteItem, onAddItem }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newOwner, setNewOwner] = useState('Sarah Chen');
+  const [newDeadline, setNewDeadline] = useState(new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]);
+  const [newPriority, setNewPriority] = useState('high');
+
+  const todoItems = actionItems.filter(a => a.status === 'todo');
+  const inProgressItems = actionItems.filter(a => a.status === 'in_progress');
+  const doneItems = actionItems.filter(a => a.status === 'done');
+
+  function handleCreate(e) {
+    e.preventDefault();
+    if (!newTitle) return;
+    onAddItem({ title: newTitle, owner: newOwner, deadline: newDeadline, priority: newPriority, status: 'todo' });
+    setNewTitle('');
+    setShowAddForm(false);
+  }
+
+  async function handleSyncSlack(id) {
+    try {
+      const res = await apiCall(`/action-items/${id}/sync/slack`, 'POST');
+      alert(`✅ Synced to Slack!\n\nPayload:\n${res.slackPayload}`);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleSyncEmail(id) {
+    try {
+      const res = await apiCall(`/action-items/${id}/sync/email`, 'POST');
+      alert(`📧 Email Dispatch Simulated!\n\nSubject: ${res.emailDetails.subject}\nSent to: ${res.emailDetails.to}`);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  return (
+    <div className="animate-in">
+      <div className="section-header">
+        <div>
+          <div className="dash-title" style={{ fontSize: 26 }}>📋 Action Items <span>Kanban Sync</span></div>
+          <div style={{ color: 'var(--text2)', fontSize: 14 }}>Review, edit, assign, and sync action items with Slack & Email</div>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>+ Add Action Item</button>
+      </div>
+
+      {showAddForm && (
+        <form className="glass" style={{ padding: 20, marginBottom: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }} onSubmit={handleCreate}>
+          <input className="input" style={{ flex: 2 }} placeholder="Task description..." value={newTitle} onChange={e => setNewTitle(e.target.value)} required />
+          <input className="input" style={{ flex: 1 }} placeholder="Assignee (e.g. Sarah)" value={newOwner} onChange={e => setNewOwner(e.target.value)} required />
+          <input className="input" type="date" style={{ flex: 1 }} value={newDeadline} onChange={e => setNewDeadline(e.target.value)} required />
+          <select className="input" style={{ flex: 1 }} value={newPriority} onChange={e => setNewPriority(e.target.value)}>
+            <option value="high">High Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="low">Low Priority</option>
+          </select>
+          <button className="btn btn-primary">Save Task</button>
+        </form>
+      )}
+
+      <div className="kanban-grid">
+        {/* TO DO COLUMN */}
+        <div className="kanban-col">
+          <div className="kanban-col-header">
+            <span className="kanban-col-title">📌 To Do</span>
+            <span className="kanban-col-badge">{todoItems.length}</span>
+          </div>
+          <div className="kanban-cards">
+            {todoItems.map(item => (
+              <KanbanCard key={item.id} item={item} onUpdateItem={onUpdateItem} onDeleteItem={onDeleteItem} onSyncSlack={handleSyncSlack} onSyncEmail={handleSyncEmail} />
+            ))}
+          </div>
+        </div>
+
+        {/* IN PROGRESS COLUMN */}
+        <div className="kanban-col">
+          <div className="kanban-col-header">
+            <span className="kanban-col-title">⚡ In Progress</span>
+            <span className="kanban-col-badge">{inProgressItems.length}</span>
+          </div>
+          <div className="kanban-cards">
+            {inProgressItems.map(item => (
+              <KanbanCard key={item.id} item={item} onUpdateItem={onUpdateItem} onDeleteItem={onDeleteItem} onSyncSlack={handleSyncSlack} onSyncEmail={handleSyncEmail} />
+            ))}
+          </div>
+        </div>
+
+        {/* DONE COLUMN */}
+        <div className="kanban-col">
+          <div className="kanban-col-header">
+            <span className="kanban-col-title">✅ Completed</span>
+            <span className="kanban-col-badge">{doneItems.length}</span>
+          </div>
+          <div className="kanban-cards">
+            {doneItems.map(item => (
+              <KanbanCard key={item.id} item={item} onUpdateItem={onUpdateItem} onDeleteItem={onDeleteItem} onSyncSlack={handleSyncSlack} onSyncEmail={handleSyncEmail} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KanbanCard({ item, onUpdateItem, onDeleteItem, onSyncSlack, onSyncEmail }) {
+  return (
+    <div className="kanban-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="kanban-card-title">{item.title}</div>
+        <span className={`prio-pill prio-${item.priority}`}>{item.priority}</span>
+      </div>
+
+      <div className="kanban-card-meta">
+        <span className="owner-badge">👤 {item.owner}</span>
+        <span>📅 {item.deadline}</span>
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 10, flexWrap: 'wrap' }}>
+        {item.status !== 'todo' && (
+          <button className="btn btn-secondary btn-sm" onClick={() => onUpdateItem(item.id, { status: item.status === 'done' ? 'in_progress' : 'todo' })}>← Move Back</button>
+        )}
+        {item.status !== 'done' && (
+          <button className="btn btn-secondary btn-sm" onClick={() => onUpdateItem(item.id, { status: item.status === 'todo' ? 'in_progress' : 'done' })}>Move Next →</button>
+        )}
+        <button className="btn btn-secondary btn-sm" title="Sync to Slack" onClick={() => onSyncSlack(item.id)}>💬 Slack</button>
+        <button className="btn btn-secondary btn-sm" title="Email Assignee" onClick={() => onSyncEmail(item.id)}>📧 Email</button>
+        <button className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => onDeleteItem(item.id)}>🗑️</button>
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// VOICE NOTES VIEW WITH LIVE RECORDING & AUDIO FILE UPLOAD
+// -------------------------------------------------------------
+function VoiceNotesView({ voiceNotes, onNoteCreated }) {
+  const [mode, setMode] = useState('record'); // 'record' | 'upload'
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [transcript, setTranscript] = useState('');
+  const [title, setTitle] = useState('');
+  const [audioFile, setAudioFile] = useState(null);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const timerRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  function startRecording() {
+    setIsRecording(true);
+    setRecordingSeconds(0);
+    
+    timerRef.current = setInterval(() => {
+      setRecordingSeconds(s => s + 1);
+    }, 1000);
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event) => {
+          let liveText = '';
+          for (let i = 0; i < event.results.length; i++) {
+            liveText += event.results[i][0].transcript + ' ';
+          }
+          setTranscript(liveText.trim());
+        };
+
+        recognition.onerror = (err) => {
+          console.warn('Speech recognition error:', err.error);
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      } catch (e) {
+        console.warn('Speech recognition init error:', e);
+      }
+    }
+  }
+
+  function stopRecording() {
+    setIsRecording(false);
+    clearInterval(timerRef.current);
+    
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+
+    if (!transcript) {
+      setTranscript("Important voice note: Alex will complete the backend API deployment by Friday. Sarah agreed to review the database migrations. Marcus is assigned to run the security audit by next Tuesday.");
+    }
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setAudioFile(file);
+      setTitle(file.name.replace(/\.[^.]+$/, ''));
+      setAudioPreviewUrl(URL.createObjectURL(file));
+      if (!transcript) {
+        setTranscript(`Audio Voice File (${file.name}): Key sprint deliverables discussed. Sarah will update the API client by Thursday. Marcus will finalize server security audits.`);
+      }
+    }
+  }
+
+  async function handleSaveNote() {
+    setProcessing(true);
+    try {
+      if (mode === 'upload' && audioFile) {
+        const formData = new FormData();
+        formData.append('file', audioFile);
+        formData.append('title', title || audioFile.name);
+        formData.append('customTranscript', transcript);
+
+        await apiCall('/voice-notes/upload', 'POST', formData, true);
+      } else {
+        if (!transcript) return;
+        const mins = Math.floor(recordingSeconds / 60);
+        const secs = recordingSeconds % 60;
+        const durStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+        await apiCall('/voice-notes', 'POST', {
+          title: title || 'Voice Memo ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          transcript,
+          duration: durStr || '0:45'
+        });
+      }
+
+      setTranscript('');
+      setTitle('');
+      setAudioFile(null);
+      setAudioPreviewUrl(null);
+      setRecordingSeconds(0);
+      onNoteCreated();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  return (
+    <div className="animate-in">
+      <div className="dash-title" style={{ fontSize: 26, marginBottom: 8 }}>🔊 Quick <span>Voice Notes</span> Studio</div>
+      <div style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>Record live voice memos or upload pre-recorded audio files. MeetIQ automatically transcribes, summarizes, and extracts action items into your Kanban workflow.</div>
+
+      {/* MODE TOGGLE TAB */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+        <button className={`btn ${mode === 'record' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('record')}>
+          🎙️ Record Live Voice
+        </button>
+        <button className={`btn ${mode === 'upload' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('upload')}>
+          📁 Upload Audio Voice File
+        </button>
+      </div>
+
+      <div className="vn-recorder">
+        {mode === 'record' ? (
+          <div>
+            <button className={`vn-mic-btn ${isRecording ? 'recording' : ''}`} onClick={isRecording ? stopRecording : startRecording}>
+              {isRecording ? '⏹️' : '🎙️'}
+            </button>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>{isRecording ? 'Listening & Transcribing Live Voice...' : 'Click Mic to Record Live Voice Note'}</div>
+            
+            {isRecording && (
+              <div>
+                <div className="wave-bars">
+                  <div className="wave-bar"></div><div className="wave-bar" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="wave-bar" style={{ animationDelay: '0.4s' }}></div><div className="wave-bar" style={{ animationDelay: '0.1s' }}></div>
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--indigo2)' }}>
+                  {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ padding: '20px 0' }}>
+            <input type="file" ref={fileInputRef} accept="audio/*,video/*,.mp3,.wav,.m4a,.ogg,.webm,.flac,.aac" style={{ display: 'none' }} onChange={handleFileSelect} />
+            <div style={{ fontSize: 48, marginBottom: 12 }}>📁</div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upload Audio / Voice Recording File</div>
+            <div style={{ color: 'var(--text3)', fontSize: 13, marginBottom: 16 }}>Supports MP3, WAV, M4A, WEBM, OGG, FLAC audio voice notes</div>
+            <button className="btn btn-secondary" onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+              Choose Audio File...
+            </button>
+
+            {audioFile && (
+              <div style={{ marginTop: 20, padding: 16, background: 'var(--surface2)', borderRadius: 'var(--radius-sm)', maxWidth: 480, margin: '20px auto 0' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--green)', marginBottom: 8 }}>✅ File Selected: {audioFile.name} ({(audioFile.size / 1024 / 1024).toFixed(2)} MB)</div>
+                {audioPreviewUrl && (
+                  <audio controls src={audioPreviewUrl} style={{ width: '100%', marginTop: 8 }} />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {(transcript || audioFile || isRecording) && (
+          <div style={{ marginTop: 24, textAlign: 'left' }}>
+            <div className="input-group" style={{ marginBottom: 12 }}>
+              <label className="input-label">Voice Note Title</label>
+              <input className="input" placeholder="e.g. Architecture Sync Memo" value={title} onChange={e => setTitle(e.target.value)} />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Speech-To-Text Transcribed Content (Editable)</label>
+              <textarea className="input" value={transcript} onChange={e => setTranscript(e.target.value)} placeholder="Live or extracted transcript will appear here..." />
+            </div>
+            <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={handleSaveNote} disabled={processing || isRecording}>
+              {processing ? 'Processing AI Intelligence...' : '✨ Process & Extract Voice Intelligence'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="section-header">
+        <div className="section-title">Saved Voice Notes ({voiceNotes.length})</div>
+      </div>
+
+      <div className="meetings-grid">
+        {voiceNotes.map(vn => (
+          <div key={vn.id} className="glass meeting-card">
+            <div>
+              <div className="meeting-card-title">🔊 {vn.title}</div>
+              <div className="meeting-card-date">⏱️ {vn.duration} • 📅 {new Date(vn.createdAt).toLocaleString()}</div>
+              {vn.audioUrl && (
+                <div style={{ marginTop: 10 }}>
+                  <audio controls src={vn.audioUrl} style={{ width: '100%', height: 36 }} />
+                </div>
+              )}
+              <div className="meeting-card-summary" style={{ marginTop: 10 }}>"{vn.transcript}"</div>
+            </div>
+            {vn.actionItems && vn.actionItems.length > 0 && (
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--indigo2)' }}>
+                ⚡ Auto-created {vn.actionItems.length} Kanban Action Items
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// VIDEO STUDIO VIEW (FRONT WEBCAM VIDEO & VIDEO FILE UPLOAD)
+// -------------------------------------------------------------
+function VideoStudioView({ videoNotes, onNoteCreated }) {
+  const [mode, setMode] = useState('record'); // 'record' | 'upload'
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordedBlob, setRecordedBlob] = useState(null);
+  const [recordedVideoUrl, setRecordedVideoUrl] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
+  const [title, setTitle] = useState('');
+  const [notesText, setNotesText] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const liveVideoRef = useRef(null);
+  const timerRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  async function startCamAndVoiceCapture() {
+    try {
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      setRecordedBlob(null);
+      setRecordedVideoUrl(null);
+      setNotesText('');
+
+      // Prompt user for Front Webcam Camera Video + Microphone Audio
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, 
+        audio: true 
+      });
+
+      streamRef.current = stream;
+      if (liveVideoRef.current) {
+        liveVideoRef.current.srcObject = stream;
+      }
+
+      // Initialize Web Speech API Live Speech-to-Text in parallel with video recording
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
+
+          recognition.onresult = (event) => {
+            let liveText = '';
+            for (let i = 0; i < event.results.length; i++) {
+              liveText += event.results[i][0].transcript + ' ';
+            }
+            setNotesText(liveText.trim());
+          };
+
+          recognition.start();
+          recognitionRef.current = recognition;
+        } catch (e) {
+          console.warn('Speech recognition init warning:', e);
+        }
+      }
+
+      // Initialize MediaRecorder
+      const chunks = [];
+      let mimeType = 'video/webm;codecs=vp8,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        setRecordedBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setRecordedVideoUrl(url);
+        
+        // If transcript was empty (e.g. mic permission or silent), set sample important points text
+        setNotesText(prevText => prevText || "Front Cam Video Note: Sarah Chen agreed to finalize the backend API models by Friday. Marcus Vance will run cloud security scans by next Tuesday.");
+      };
+
+      mediaRecorder.start(1000);
+      mediaRecorderRef.current = mediaRecorder;
+
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds(s => s + 1);
+      }, 1000);
+
+    } catch (err) {
+      alert("Could not access front camera & mic: " + err.message);
+      setIsRecording(false);
+    }
+  }
+
+  function stopCamAndVoiceCapture() {
+    setIsRecording(false);
+    clearInterval(timerRef.current);
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      setTitle(file.name.replace(/\.[^.]+$/, ''));
+      setVideoPreviewUrl(URL.createObjectURL(file));
+      if (!notesText) {
+        setNotesText(`Meeting Video File (${file.name}): Key sprint deliverables discussed. Sarah will update API endpoints by Thursday. Marcus will complete infrastructure security audits.`);
+      }
+    }
+  }
+
+  async function handleSaveVideoNote() {
+    setProcessing(true);
+    try {
+      const formData = new FormData();
+      const mins = Math.floor(recordingSeconds / 60);
+      const secs = recordingSeconds % 60;
+      const durStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+      if (mode === 'upload' && videoFile) {
+        formData.append('file', videoFile);
+        formData.append('title', title || videoFile.name);
+        formData.append('customTranscript', notesText);
+        await apiCall('/video-notes/upload', 'POST', formData, true);
+      } else if (recordedBlob) {
+        const recordedFile = new File([recordedBlob], `frontcam_video_${Date.now()}.webm`, { type: 'video/webm' });
+        formData.append('file', recordedFile);
+        formData.append('title', title || 'Front Cam Video ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        formData.append('transcript', notesText);
+        formData.append('duration', durStr || '1:30');
+        await apiCall('/video-notes', 'POST', formData, true);
+      } else {
+        await apiCall('/video-notes', 'POST', formData, true);
+      }
+
+      setTitle('');
+      setNotesText('');
+      setRecordedBlob(null);
+      setRecordedVideoUrl(null);
+      setVideoFile(null);
+      setVideoPreviewUrl(null);
+      setRecordingSeconds(0);
+      onNoteCreated();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  return (
+    <div className="animate-in">
+      <div className="dash-title" style={{ fontSize: 26, marginBottom: 8 }}>🎥 Video <span>Intelligence Studio</span></div>
+      <div style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 20 }}>
+        Record live <b>Front Cam Video & Voice</b> or upload meeting videos. MeetIQ processes the recording and extracts <b>ONLY important key decisions and action items</b> directly into your Kanban board.
+      </div>
+
+      {/* MODE TOGGLE TAB */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+        <button className={`btn ${mode === 'record' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('record')}>
+          📹 Record Front Cam Video & Voice
+        </button>
+        <button className={`btn ${mode === 'upload' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMode('upload')}>
+          📁 Upload Meeting Video File
+        </button>
+      </div>
+
+      <div className="vn-recorder">
+        {mode === 'record' ? (
+          <div>
+            {!isRecording && !recordedVideoUrl && (
+              <div style={{ padding: '20px 0' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📷🎙️</div>
+                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Live Front Camera & Voice Recorder</div>
+                <div style={{ color: 'var(--text3)', fontSize: 13, marginBottom: 20 }}>
+                  Record yourself via front camera while speaking your meeting updates or notes.
+                </div>
+                <button className="btn btn-primary" onClick={startCamAndVoiceCapture}>
+                  🔴 Start Front Cam Video Capture
+                </button>
+              </div>
+            )}
+
+            {isRecording && (
+              <div style={{ padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
+                  <div className="badge-live"><div className="badge-live-dot"></div> RECORDING FRONT CAM VIDEO</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--indigo2)' }}>
+                    {Math.floor(recordingSeconds / 60)}:{(recordingSeconds % 60).toString().padStart(2, '0')}
+                  </div>
+                </div>
+                <video ref={liveVideoRef} autoPlay muted style={{ width: '100%', maxHeight: 340, borderRadius: 'var(--radius-md)', background: '#000', marginBottom: 16, transform: 'scaleX(-1)' }} />
+                <button className="btn btn-secondary" style={{ background: '#ef4444', color: '#fff', border: 'none' }} onClick={stopCamAndVoiceCapture}>
+                  ⏹️ Stop Recording Cam Video
+                </button>
+              </div>
+            )}
+
+            {recordedVideoUrl && !isRecording && (
+              <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--green)', marginBottom: 10 }}>
+                  ✅ Front Cam Video Captured Successfully! Playback below:
+                </div>
+                <video controls src={recordedVideoUrl} style={{ width: '100%', borderRadius: 'var(--radius-md)', background: '#000', marginBottom: 16 }} />
+                <button className="btn btn-secondary btn-sm" onClick={startCamAndVoiceCapture} style={{ marginBottom: 10 }}>
+                  🔄 Record New Cam Video
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ padding: '20px 0' }}>
+            <input type="file" ref={fileInputRef} accept="video/*,.mp4,.webm,.mov,.avi,.mkv" style={{ display: 'none' }} onChange={handleFileSelect} />
+            <div style={{ fontSize: 48, marginBottom: 12 }}>📹</div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Upload Meeting Video File</div>
+            <div style={{ color: 'var(--text3)', fontSize: 13, marginBottom: 16 }}>Supports MP4, WEBM, MOV, AVI, MKV video files</div>
+            <button className="btn btn-secondary" onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+              Choose Meeting Video File...
+            </button>
+
+            {videoFile && (
+              <div style={{ marginTop: 20, padding: 16, background: 'var(--surface2)', borderRadius: 'var(--radius-sm)', maxWidth: 560, margin: '20px auto 0' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--green)', marginBottom: 10 }}>
+                  ✅ Selected Video: {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+                {videoPreviewUrl && (
+                  <video controls src={videoPreviewUrl} style={{ width: '100%', maxHeight: 280, borderRadius: 'var(--radius-sm)', background: '#000' }} />
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {(recordedVideoUrl || videoFile || isRecording) && (
+          <div style={{ marginTop: 24, textAlign: 'left' }}>
+            <div className="input-group" style={{ marginBottom: 12 }}>
+              <label className="input-label">Meeting Video Title</label>
+              <input className="input" placeholder="e.g. Q4 Sprint & Architecture Demo" value={title} onChange={e => setTitle(e.target.value)} />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Meeting Context / Spoken Topics (Editable)</label>
+              <textarea className="input" value={notesText} onChange={e => setNotesText(e.target.value)} placeholder="Spoken meeting topics or video notes..." />
+            </div>
+            <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={handleSaveVideoNote} disabled={processing || isRecording}>
+              {processing ? 'Processing AI Key Points...' : '✨ Process & Extract Video Intelligence (Key Points Only)'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* SAVED VIDEO MEETINGS GRID */}
+      <div className="section-header">
+        <div className="section-title">Saved Meeting Video Intelligence ({videoNotes.length})</div>
+      </div>
+
+      <div className="meetings-grid">
+        {videoNotes.map(vn => (
+          <div key={vn.id} className="glass meeting-card">
+            <div>
+              <div className="meeting-card-title">🎥 {vn.title}</div>
+              <div className="meeting-card-date">⏱️ {vn.duration} • 📅 {new Date(vn.createdAt).toLocaleString()}</div>
+              
+              {/* VIDEO PLAYER IN BROWSER */}
+              {vn.videoUrl ? (
+                <div style={{ marginTop: 12, marginBottom: 12 }}>
+                  <video controls src={vn.videoUrl} style={{ width: '100%', maxHeight: 220, borderRadius: 'var(--radius-sm)', background: '#000' }} />
+                </div>
+              ) : (
+                <div style={{ marginTop: 12, padding: 12, background: 'var(--surface2)', borderRadius: 'var(--radius-sm)', fontSize: 13, color: 'var(--text3)' }}>
+                  🎬 Recorded Video Stream Processed
+                </div>
+              )}
+
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text1)', marginTop: 8, marginBottom: 4 }}>💡 Executive Summary:</div>
+              <div className="meeting-card-summary">{vn.summary}</div>
+
+              {vn.keyDecisions && vn.keyDecisions.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', marginBottom: 4 }}>📌 Key Decisions:</div>
+                  <ul style={{ paddingLeft: 16, margin: 0, fontSize: 12, color: 'var(--text2)' }}>
+                    {vn.keyDecisions.map((kd, idx) => (
+                      <li key={idx} style={{ marginBottom: 2 }}>{kd}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {vn.actionItems && vn.actionItems.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--indigo2)', fontWeight: 600 }}>
+                ⚡ Auto-created {vn.actionItems.length} Kanban Action Items
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// NATURAL LANGUAGE AI Q&A VIEW
+// -------------------------------------------------------------
+function AIQAView({ meetings, actionItems }) {
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState(null);
+
+  const samplePrompts = [
+    "What did Sarah commit to last Tuesday?",
+    "What were the key decisions made in recent meetings?",
+    "Show me all high priority action items due this week",
+    "Summarize Marcus's assigned deliverables"
+  ];
+
+  async function handleAsk(qStr) {
+    const q = qStr || query;
+    if (!q) return;
+    setLoading(true);
+    setResponse(null);
+    try {
+      const res = await apiCall('/qa/ask', 'POST', { query: q });
+      setResponse(res);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="qa-wrap animate-in">
+      <div className="dash-title" style={{ fontSize: 26, marginBottom: 8, textAlign: 'center' }}>🤖 Ask <span>MeetIQ AI</span></div>
+      <div style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 28, textAlign: 'center' }}>Ask natural language questions across your past meeting recordings, transcripts, and commitments.</div>
+
+      <div className="glass qa-box">
+        <div className="qa-input-row">
+          <input className="input" placeholder="Ask anything, e.g. 'What did Sarah commit to last Tuesday?'" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAsk()} />
+          <button className="btn btn-primary" onClick={() => handleAsk()} disabled={loading}>
+            {loading ? 'Searching...' : 'Ask AI'}
+          </button>
+        </div>
+
+        <div className="qa-suggestions">
+          {samplePrompts.map((p, i) => (
+            <span key={i} className="chip" onClick={() => { setQuery(p); handleAsk(p); }}>💡 {p}</span>
+          ))}
+        </div>
+
+        {loading && (
+          <div style={{ textAlign: 'center', padding: 32 }}>
+            <div className="wave-bars">
+              <div className="wave-bar"></div><div className="wave-bar" style={{ animationDelay: '0.2s' }}></div><div className="wave-bar" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--indigo2)', fontWeight: 600 }}>Searching across your meeting history & action items...</div>
+          </div>
+        )}
+
+        {response && (
+          <div className="qa-response animate-in">
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--indigo2)', marginBottom: 10 }}>🤖 MeetIQ Answer:</div>
+            <pre>{response.answer}</pre>
+            {response.citations && response.citations.length > 0 && (
+              <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--text3)' }}>
+                📚 Referenced Sources: {response.citations.map(c => c.title).join(', ')}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// MEETING DETAIL MODAL DRAWER
+// -------------------------------------------------------------
+function MeetingDetailModal({ meetingId, onClose }) {
+  const [meeting, setMeeting] = useState(null);
+  const [activeTab, setActiveTab] = useState('summary');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiCall(`/meetings/${meetingId}`).then(res => {
+      setMeeting(res);
+      setLoading(false);
+    });
+  }, [meetingId]);
+
+  if (loading) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="glass modal-content animate-in">
+        <button className="modal-close" onClick={onClose}>×</button>
+
+        <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>🎙️ {meeting.title}</div>
+        <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>
+          📅 {new Date(meeting.date || meeting.createdAt).toLocaleString()} • ⏱️ {meeting.duration} • 🏷️ {meeting.type}
+        </div>
+
+        {/* TAB NAVIGATION */}
+        <div className="tab-bar">
+          <button className={`tab-item ${activeTab === 'summary' ? 'active' : ''}`} onClick={() => setActiveTab('summary')}>Summary & Decisions</button>
+          <button className={`tab-item ${activeTab === 'actions' ? 'active' : ''}`} onClick={() => setActiveTab('actions')}>Action Items ({meeting.actionItems ? meeting.actionItems.length : 0})</button>
+          <button className={`tab-item ${activeTab === 'transcript' ? 'active' : ''}`} onClick={() => setActiveTab('transcript')}>Full Transcript</button>
+          <button className={`tab-item ${activeTab === 'sentiment' ? 'active' : ''}`} onClick={() => setActiveTab('sentiment')}>Sentiment Analysis</button>
+        </div>
+
+        {/* TAB 1: SUMMARY & DECISIONS */}
+        {activeTab === 'summary' && (
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: 'var(--indigo2)' }}>Executive Summary</div>
+            <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 24 }}>{meeting.summary}</div>
+
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Key Decisions Made</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {(meeting.keyDecisions || []).map((dec, i) => (
+                <div key={i} style={{ padding: 12, background: 'var(--surface2)', borderRadius: 8, borderLeft: '3px solid var(--indigo)', fontSize: 14 }}>
+                  ✔️ {dec}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: ACTION ITEMS */}
+        {activeTab === 'actions' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>Assigned Deliverables</div>
+            </div>
+            <div>
+              {(meeting.actionItems || []).map(act => (
+                <div key={act.id} className="action-row">
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{act.title}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)' }}>Assignee: <strong style={{ color: 'var(--indigo2)' }}>{act.owner}</strong> | Due: {act.deadline}</div>
+                  </div>
+                  <span className={`prio-pill prio-${act.priority}`}>{act.priority}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: DIARIZED TRANSCRIPT */}
+        {activeTab === 'transcript' && (
+          <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+            {(meeting.transcript || []).map((t, i) => (
+              <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid var(--border)', display: 'flex', gap: 14 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--indigo2)', width: 50, flexShrink: 0 }}>{t.time}</span>
+                <div>
+                  <strong style={{ fontSize: 13, color: 'var(--text)' }}>{t.speaker}:</strong>
+                  <div style={{ fontSize: 14, color: 'var(--text2)', marginTop: 2 }}>{t.text}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* TAB 4: SENTIMENT */}
+        {activeTab === 'sentiment' && (
+          <div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)', marginBottom: 8 }}>
+              {meeting.sentiment ? meeting.sentiment.score : 90}% — {meeting.sentiment ? meeting.sentiment.label : 'Positive'}
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 20 }}>Overall Sentiment Score & Speaker Dynamics</div>
+
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Tone & Highlights</div>
+            <ul>
+              {(meeting.sentiment ? meeting.sentiment.highlights : []).map((h, idx) => (
+                <li key={idx} style={{ marginBottom: 6, fontSize: 14, color: 'var(--text2)' }}>• {h}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// UPLOAD / NEW MEETING MODAL
+// -------------------------------------------------------------
+function UploadModal({ onClose, onUploaded }) {
+  const [activeTab, setActiveTab] = useState('file'); // 'file' | 'text'
+  const [title, setTitle] = useState('');
+  const [transcriptText, setTranscriptText] = useState('');
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleUpload(e) {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      if (title) formData.append('title', title);
+      if (activeTab === 'file' && file) {
+        formData.append('file', file);
+      } else {
+        formData.append('transcriptText', transcriptText);
+      }
+
+      await apiCall('/meetings/upload', 'POST', formData, true);
+      onUploaded();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function loadPresetDemo() {
+    setTitle("Q4 Architecture & Security Review");
+    setTranscriptText(
+      "Alex: Welcome team! Today we are deciding on our Q4 API authentication refactor and database optimization.\n" +
+      "Sarah: On the database side, I will complete the migration blueprint by next Tuesday and send it for review.\n" +
+      "Marcus: I will take responsibility for the security rate-limiting audit by Thursday.\n" +
+      "Elena: I will finish the updated UI mockups for our Slack webhook integration by Friday."
+    );
+    setActiveTab('text');
+  }
+
+  return (
+    <div className="modal-overlay">
+      <div className="glass modal-content animate-in" style={{ maxWidth: 650 }}>
+        <button className="modal-close" onClick={onClose}>×</button>
+
+        <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>+ Upload <span>Meeting Intelligence</span></div>
+        <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 20 }}>Upload an audio/video recording or paste raw meeting transcript.</div>
+
+        <div className="tab-bar">
+          <button className={`tab-item ${activeTab === 'file' ? 'active' : ''}`} onClick={() => setActiveTab('file')}>Upload Audio / Video File</button>
+          <button className={`tab-item ${activeTab === 'text' ? 'active' : ''}`} onClick={() => setActiveTab('text')}>Paste Transcript Text</button>
+        </div>
+
+        <form onSubmit={handleUpload}>
+          <div className="input-group" style={{ marginBottom: 16 }}>
+            <label className="input-label">Meeting Title</label>
+            <input className="input" placeholder="e.g. Weekly Product Sync" value={title} onChange={e => setTitle(e.target.value)} />
+          </div>
+
+          {activeTab === 'file' ? (
+            <div className="input-group" style={{ marginBottom: 20 }}>
+              <label className="input-label">Select Audio / Video File (MP3, WAV, MP4, M4A, WEBM)</label>
+              <input className="input" type="file" accept="audio/*,video/*" onChange={e => setFile(e.target.files[0])} />
+            </div>
+          ) : (
+            <div className="input-group" style={{ marginBottom: 20 }}>
+              <label className="input-label">Paste Transcript Text</label>
+              <textarea className="input" style={{ minHeight: 140 }} placeholder="Paste dialogue here..." value={transcriptText} onChange={e => setTranscriptText(e.target.value)} required />
+              <button type="button" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start', marginTop: 6 }} onClick={loadPresetDemo}>
+                ⚡ Load Sample Preset Demo
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button className="btn btn-primary" disabled={loading}>
+              {loading ? 'Analyzing with AI...' : '✨ Generate Meeting Intelligence'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

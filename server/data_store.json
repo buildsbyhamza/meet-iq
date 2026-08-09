@@ -1,0 +1,17 @@
+{
+  "users": [
+    {
+      "id": "usr_demo_101",
+      "email": "alex@company.com",
+      "name": "Alex Rivera",
+      "role": "Product Lead",
+      "passwordHash": "$2a$10$/HNpWHaAAk5OvLiLxKs8auHqFhAymSQUGqC47Lo4fi3A/TdNYPEQO",
+      "createdAt": "2026-08-09T14:59:54.699Z"
+    }
+  ],
+  "meetings": [],
+  "actionItems": [],
+  "voiceNotes": [],
+  "qaHistory": [],
+  "videoNotes": []
+}

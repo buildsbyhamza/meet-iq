@@ -1,0 +1,19 @@
+{
+  "name": "meetiq-ai",
+  "version": "1.0.0",
+  "description": "MeetIQ — Full Stack AI Meeting Intelligence & Voice Notes App",
+  "main": "server/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
