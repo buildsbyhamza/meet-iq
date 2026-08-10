@@ -128,7 +128,7 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
 // -------------------------------------------------------------
 app.get('/api/meetings', authenticateToken, (req, res) => {
   const data = db.loadData();
-  const userMeetings = data.meetings
+  const userMeetings = (data.meetings || [])
     .filter(m => m.userId === req.user.id)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   res.json(userMeetings);
@@ -136,11 +136,35 @@ app.get('/api/meetings', authenticateToken, (req, res) => {
 
 app.get('/api/meetings/:id', authenticateToken, (req, res) => {
   const data = db.loadData();
-  const meeting = data.meetings.find(m => m.id === req.params.id && m.userId === req.user.id);
+  const meeting = (data.meetings || []).find(m => m.id === req.params.id && m.userId === req.user.id);
   if (!meeting) return res.status(404).json({ error: 'Meeting not found' });
 
-  const actionItems = data.actionItems.filter(a => a.meetingId === meeting.id);
+  const actionItems = (data.actionItems || []).filter(a => a.meetingId === meeting.id);
   res.json({ ...meeting, actionItems });
+});
+
+// ...
+
+// -------------------------------------------------------------
+// ACTION ITEMS & KANBAN ROUTES
+// -------------------------------------------------------------
+app.get('/api/action-items', authenticateToken, (req, res) => {
+  const data = db.loadData();
+  const userActions = (data.actionItems || []).filter(a => a.userId === req.user.id);
+  res.json(userActions);
+});
+
+// ...
+
+// -------------------------------------------------------------
+// VOICE NOTES ROUTES (Live Record + File Upload)
+// -------------------------------------------------------------
+app.get('/api/voice-notes', authenticateToken, (req, res) => {
+  const data = db.loadData();
+  const notes = (data.voiceNotes || [])
+    .filter(n => n.userId === req.user.id)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(notes);
 });
 
 app.post('/api/meetings/upload', authenticateToken, upload.single('file'), async (req, res) => {
